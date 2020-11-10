@@ -1,39 +1,62 @@
-summary(train)
-bar_plots<- train%>%select(-`Duration-of-Credit-Month`,-`Credit-Amount`,-`Instalment-per-cent`,-`Age-years`)%>%
-  gather(-`Credit-Application-Result`, key = "var",value = "value")%>%
-  ggplot(aes(x = value, fill=`Credit-Application-Result`))+
-  geom_bar()+
-  facet_wrap(~var,scales = 'free') +
-  theme_bw()
-save(plots, file = "fig/bar_plots.fig")
+train <- import('rda/train.rda')
+glimpse(train)
 
-low_variability_plots <-train%>%
-  select(`Concurrent-Credits`,`Foreign-Worker`,Guarantors, `No-of-dependents`,
-         Occupation)%>%
-  gather(key ="var", value ="value")%>%
-  ggplot(aes(x = value))+
-  geom_bar() +
-  facet_wrap(~var,scales = 'free') +
-  theme_bw()
-save(low_variability_plots, file ="fig/low_variability_plots.fig")
+# Plot distribution plots
 
-# Drop variables with low variability including telephone number
-
-train_low_variability <- train%>%
-  select(-`Concurrent-Credits`,-`Foreign-Worker`,
-         -Guarantors,-`No-of-dependents`,-Occupation,-Telephone)
-
-# Plotting boxplots
-box_plots <-train%>%
-  select(`Credit-Application-Result`,`Duration-of-Credit-Month`,`Credit-Amount`,
-         `Instalment-per-cent`,`Age-years`)%>%
-  gather(-`Credit-Application-Result`,key = "var",value = "value")%>%
-  ggplot(aes(x = value,y = `Credit-Application-Result`, 
-             fill=`Credit-Application-Result`))+
-  geom_boxplot()+
-  facet_wrap(~var,scales = 'free') +
+dist.plt1 <- train%>%
+  ggplot(aes(Credit.Amount, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Credit Amount') + ylab('Frequency')+
   theme_bw()
 
-save(box_plots, file = "fig/box_plts.fig")
+dist.plt1
 
-save(train_low_variability,file ="rda/train_2.rda")
+dist.plt2 <- train%>%
+  ggplot(aes(Age.years, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Age (years)') + ylab('Frequency')+
+  theme_bw()
+
+dist.plt2
+
+dist.plt3 <- train%>%
+  ggplot(aes(Duration.of.Credit.Month, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Duration of Credit (Months)') + ylab('Frequency')+
+  theme_bw()
+grid.arrange(dist.plt1, dist.plt2, dist.plt3)
+
+#corresponding boxplots
+
+bx.plt1 <- train%>%
+  ggplot(aes(Credit.Amount, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Credit Amount') + ylab('Frequency')+
+  theme_bw()
+
+bx.plt2 <- train%>%
+  ggplot(aes(Age.years, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Age (years)') + ylab('Frequency')+
+  theme_bw()
+
+bx.plt3 <- train%>%
+  ggplot(aes(Duration.of.Credit.Month, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Duration of Credit (Months)') + ylab('Frequency')+
+  theme_bw()
+grid.arrange(bx.plt1, bx.plt2, bx.plt3)
+
+

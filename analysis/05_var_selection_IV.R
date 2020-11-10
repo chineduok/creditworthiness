@@ -1,4 +1,12 @@
 # Detecting zero and near-zero variance predictors
+# checcking for zero-near zero variance variables
+
+nzv.check.plt <- train%>%select_if(is.factor)%>%
+  gather()%>%
+  ggplot(aes(value,fill=value))+
+  facet_wrap(~key,scales = 'free') +
+  geom_bar(show.legend = F)
+
 char.train <- train[,c(1,2,4,5,7,8,10,11,13,14,15,16,17,18,19)]
 
 nzv <- nearZeroVar(char.train, saveMetrics = T)

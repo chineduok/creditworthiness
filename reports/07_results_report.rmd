@@ -9,19 +9,19 @@ output:
 
 ## Section 1: Business Understanding
 
-_Business Situation_
+__Business Situation__
 
 Our bank receives 200 loan applications per week, but due to a financial scandal that hit a competitor the credit risk unit of the bank will be processing 500 applications this week.The influx of new credit applications is a great opportunity the bank wants to immediately pursue.
 
-_The Complication_
+__The Complication__
 
 The bank will want to maintain there processing turnaround time while ensuring that the credit risk unit is able to effectively determine creditworthy applications, while reducing the risk of default by effectively determining non-creditworthy applications.
 
-_Key Decision that needs to be made_
+__Key Decision that needs to be made__
 
 The Head of the credit risk department needs to decide if a loan should be approved for each of the 500 loan applications received this week.
 
-_Approach_
+__Approach__
 
 This project is data rich; it has readily available information that can be used to predict creditworthiness of the 500 loan applications. The data will be acquired internally from already processed loan applications,'customers-to-score' and the data from the 500 loan applications yet to be reviewed,'customers-to-score'. The two sets of data include personal details about the customer, such as their age and how long they have been at their current job. It will also include details on the individual’s banking and credit history, such as their account balance, number of credits at this bank, and their payment status of previous credit.
 
@@ -57,34 +57,298 @@ colnames(test)<-make.names(colnames(test))
 ```
 
 
-```{r}
+```{r echo=FALSE}
 names(train)
 ```
+_Table 2.1 List of variables_
 
 We checked the data structure and quality to check for missing values.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 na_plot<-missmap(train, legend = T, col = c('yellow','black'), main = "Creditworthiness Missingness Map")
 
-data.frame(colSums(is.na(train)))
 
 ```
+_Fig 2.1 Missing Values_
+
+
+
+```{r echo=FALSE}
+train_NA<-data.frame(colSums(is.na(train)))
+colnames(train_NA)<-'NAs'
+train_NA
+```
+_Table 2.2 NA's per variable_
 
 The missing values plot showed that the variables _Duration.in.Current.address_ had more than 50% of its values missing and _Age.years_ had less than 5% missing values. We dropped _Duration.in.Current.address_ and imputed the missing _Age.years_ with the median value.
 Character variables were also encoded as factors.
 
-## Section 3: Exploratory Data Analysis
+```{r include=FALSE}
+train<-train%>%select(-Duration.in.Current.address)
 
-Next we performed some exploratory data analysis to generate some insights from our internal data. We started with some distributions to get a sense of the numeric data.
+for (i in (1:length(train$Age.years)))
+{
+  if(is.na(train$Age.years[i])==T){
+    train$Age.years[i]<- median(train$Age.years,na.rm = T)}
+  else{
+    train$Age.years[i]
+  } }
 
-```{r}
+
+## Factor Encoding
+train$Account.Balance<- factor(train$Account.Balance)
+
+train$Payment.Status.of.Previous.Credit<-factor(train$Payment.Status.of.Previous.Credit)
+
+train$Purpose <- factor(train$Purpose)
+
+train$Concurrent.Credits <- factor(train$Concurrent.Credits)
+
+train$Occupation <- factor(train$Occupation)
+
+train$Length.of.current.employment<- factor(train$Length.of.current.employment)
+
+train$Guarantors <- factor(train$Guarantors)
+
+train$No.of.Credits.at.this.Bank<-factor(train$No.of.Credits.at.this.Bank)
+
+train$Value.Savings.Stocks<-factor(train$Value.Savings.Stocks,levels = c("None","< £100","£100-£1000"))
+
+train$Foreign.Worker<- factor(train$Foreign.Worker)
+
+train$Credit.Application.Result<- factor(train$Credit.Application.Result)
+
+train$Type.of.apartment<- factor(train$Type.of.apartment)
+
+train$Most.valuable.available.asset<-factor(train$Most.valuable.available.asset)
+
+
+summary(train) 
 
 ```
 
 
+## Section 3: Exploratory Data Analysis
+
+Next we performed some exploratory data analysis to generate some insights from our internal data. We started with some distributions of categorical variables to get a sense of variables that have zero variance or near zro variance that can affect our modeling.
+
+```{r near zero variance, echo=FALSE, fig.height=8, fig.width=10, message=FALSE, warning=FALSE}
+nzv.check.plt <- train%>%select_if(is.factor)%>%
+  gather()%>%
+  ggplot(aes(value))+
+  facet_wrap(~key,scales = 'free') +
+  geom_bar(show.legend = F)
+nzv.check.plt
+```
+_Fig_3.1 Bar charts of categorical variables_
+
+We can identify immediately 3 variables, 'Concurrent.Credits','Foreign.Worker', 'Guarantors' and 'Occupation'. To be sure of this we claculate the frequency ratio of the most occurrence over the second most occurrence value within the variables and also the percent unique to check their validity.
+
+```{r echo=FALSE}
+nzv <- nearZeroVar(train, saveMetrics = T)
+
+nzv%>%filter(nzv==T)
+
+# Drop variables with the zero or near zero variance predictors and telephone number
+nzv<-nearZeroVar(train)
+train_new<-train[,-nzv]
+```
+_Table 3.1 Near Zero Variance predictor variables_
+
+We discovered that only three variables meet this criteria as shown in Table 3.1 above and these variables were dropped. We continue with our analysis by plotting the distribution of the continuous variables.
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+dist.plt1 <- train%>%
+  ggplot(aes(Credit.Amount, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Credit Amount') + ylab('Frequency')+
+  theme_bw()
+
+dist.plt2 <- train%>%
+  ggplot(aes(Age.years, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Age (years)') + ylab('Frequency')+
+  theme_bw()
+
+dist.plt3 <- train%>%
+  ggplot(aes(Duration.of.Credit.Month, fill= Credit.Application.Result)) +
+  geom_density(alpha=0.5, color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Duration of Credit (Months)') + ylab('Frequency')+
+  theme_bw()
+
+#corresponding boxplots
+
+bx.plt1 <- train%>%
+  ggplot(aes(Credit.Amount, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Credit Amount') + ylab('Frequency')+
+  theme_bw()
+
+bx.plt2 <- train%>%
+  ggplot(aes(Age.years, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Age (years)') + ylab('Frequency')+
+  theme_bw()
+
+bx.plt3 <- train%>%
+  ggplot(aes(Duration.of.Credit.Month, fill= Credit.Application.Result)) +
+  geom_boxplot(color ='black') +
+  scale_fill_brewer(palette = 'Dark2') +
+  scale_x_log10()+
+  xlab('Duration of Credit (Months)') + ylab('Frequency')+
+  theme_bw()
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+grid.arrange(dist.plt1, dist.plt2, dist.plt3)
+```
+_Fig 3.2 Density Plots_
+
+We can see that they are not normally distributed and it seems as if the central tendencies for each category in the three plots are different. We also see that the categories follow the same skew direction. The defined humps in Credit Amount and Duration of Credit were there are 3 suggests that there are about 2-3 defined groups in the loan applicants which will be verified with categorical plots subsequently. We also sense that these be strong predictors and this will be further verified with boxplots to visualize the difference in their means.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+grid.arrange(bx.plt1, bx.plt2, bx.plt3)
+```
+_Fig 3.3 Box Plots_
+
+We discover that the difference is means for the two categories are evident for the 3 continuous predictor variables and Duration of Credit is the strongest of the three. This was tested using the t-test and their strength measured by the p-values is shown in the table below. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(broom)
+strength.predictors <- train%>%select(Credit.Application.Result, Credit.Amount,
+                                      Duration.of.Credit.Month, Age.years)%>%
+  gather(-Credit.Application.Result, key = "var",value = "value")%>%
+  group_by(var)%>%
+  do(tidy(t.test(value~ Credit.Application.Result, data=.)))
+
+strength.predictors%>%select(p.value)
+```
+_Table 3.2 Strength of continuous predictor variables_
+
+Here we look for insights on some of the categorical variables by plotting some bar graphs.
+
+```{r echo=FALSE, fig.height=8, fig.width=8}
+b.plt1 <- train%>%
+  ggplot(aes(Account.Balance, fill= Credit.Application.Result ))+
+  geom_bar(color ='black')+
+  scale_fill_brewer(palette = "Accent")+
+  xlab('Account Balance') +
+  geom_text(stat = "count", aes(label = ..count..),
+            inherit.aes = TRUE,position = position_stack(), vjust = 1.5) +
+  theme_bw()
+
+
+b.plt2 <- train%>%
+  ggplot(aes(Payment.Status.of.Previous.Credit, fill=Credit.Application.Result))+
+  geom_bar(color ='black')+
+  scale_fill_brewer(palette = "Accent")+
+  xlab('Payment Status of Previous Credit') +
+  geom_text(stat = "count", aes(label = ..count..),
+            inherit.aes = TRUE,position = position_stack(), vjust = 1.5) +
+  theme_bw()
+
+# It will be interesting to get some more insights on this variable beyond the outcome variable
+
+b.plt2a <- train%>%
+  ggplot(aes(Purpose, fill=Credit.Application.Result))+
+  geom_bar(color ='black')+
+  scale_fill_brewer(palette = "Accent")+
+  xlab('Purpose') +
+  geom_text(stat = "count", aes(label = ..count..),
+            inherit.aes = TRUE,position = position_stack(), vjust = 1.5) +
+  theme_bw()
+
+grid.arrange(b.plt1, b.plt2, b.plt2a)
+
+
+```
+_Fig 3.4 Barplots group 1_
+
+__Some observations from Fig 3.4__  
+__Account Balance__: there are more Creditworthy people with _Some Balance_ than _No Account_ and consequently less people Non.Creditworthy people with _Some Balance_ than _No Account_ . It suggests that having some amount in your account may determine creditworthiness.
+
+__Payment Status of previous Credit__:This chart suggests that while there may be 25 accounts with _Some Problems_ that are classified as Non.Creditworthy, having probably defaulted, there were 75 accounts that are now _Paid Up_ but classified as Non.Creditworthy. The predictive model should be able to reduce this risk with an acceptable mis-classification rate.
+
+__Purpose__: The bank has a bigger appetite for _Home Related_ loans.
+
+```{r echo=FALSE, fig.height=6, fig.width=8}
+b.plt3 <- train%>%
+  ggplot(aes(Value.Savings.Stocks, fill=Credit.Application.Result))+
+  geom_bar(color ='black')+
+  scale_fill_brewer(palette = "Accent")+
+  xlab('Value in Savings or Stocks') +
+  geom_text(stat = "count", aes(label = ..count..),
+            inherit.aes = TRUE,position = position_stack(), vjust = 1.5) +
+  theme_bw()
 
 
 
+b.plt4 <- train%>%
+  ggplot(aes(Length.of.current.employment, fill=Credit.Application.Result))+
+  geom_bar(color ='black')+
+  scale_fill_brewer(palette = "Accent")+
+  xlab('Length of current employment') +
+  geom_text(stat = "count", aes(label = ..count..),
+            inherit.aes = TRUE,position = position_stack(), vjust = 1.5) +
+  theme_bw()
 
+grid.arrange(b.plt3,b.plt4)
+```
+_Fig 3.5 Bar plots group2_
 
+This group of charts seem to follow the same trend. It shows that people with less than a year in current may not have attained an acceptable credit score and without any savings further supports the suggestion that these may be new employees or those just starting out in their careers.
 
+## Section 4: Training the Model
+
+We used 4 different algorithms to train the binary classification model and compared their ROC and Accuracy performance of metrics to determine the best performance for scoring the 500 new loan applications.The algorithms we used are: 
+
+1.Logistic Regression  
+2.Decision Tree  
+3.Random Forest  
+4.Boosted Tree  
+
+We did a train/test split of 70/30 for our external validation and set the hyper parameters to tune the different algorithms using repeated cross validation of 10 for to determine the accuracy of the models and class probability with two class summary to measure the ROC of the models.
+```{r Data split, message=FALSE, warning=FALSE, include=FALSE}
+set.seed(123)
+##Data split
+train_index <- createDataPartition(train_new$Credit.Application.Result,times = 1, p = 0.7, list = F)
+train_set <- train_new[train_index,]
+test_set <- train_new[-train_index,]
+```
+
+```{r hyperparameter tuning, message=FALSE, warning=FALSE, include=FALSE}
+## Setting the tuning parameters
+fitControl <- trainControl(## 10-fold CV
+  method = "repeatedcv",
+  number = 10,
+  #classProbs = T,
+  ## repeated ten times
+  repeats = 10)
+
+fitControl2<- trainControl(## 10-fold CV
+  method = "repeatedcv",
+  number = 10,
+  classProbs = T,
+  ## repeated ten times
+  repeats = 10,
+  summaryFunction = twoClassSummary)
+
+tune.Grid <-  expand.grid(interaction.depth = c(1, 5, 9), 
+                          n.trees = (30:500) ,
+                          shrinkage = 0.1,
+                          n.minobsinnode = 15)
+```
+
+__Logistic Regression__
