@@ -1,0 +1,90 @@
+---
+output: 
+  pdf_document: 
+    fig_caption: yes
+    number_sections: no
+---
+
+#  BUSINESS REPORT- PREDICTING DEFAULT RISK
+
+## Section 1: Business Understanding
+
+_Business Situation_
+
+Our bank receives 200 loan applications per week, but due to a financial scandal that hit a competitor the credit risk unit of the bank will be processing 500 applications this week.The influx of new credit applications is a great opportunity the bank wants to immediately pursue.
+
+_The Complication_
+
+The bank will want to maintain there processing turnaround time while ensuring that the credit risk unit is able to effectively determine creditworthy applications, while reducing the risk of default by effectively determining non-creditworthy applications.
+
+_Key Decision that needs to be made_
+
+The Head of the credit risk department needs to decide if a loan should be approved for each of the 500 loan applications received this week.
+
+_Approach_
+
+This project is data rich; it has readily available information that can be used to predict creditworthiness of the 500 loan applications. The data will be acquired internally from already processed loan applications,'customers-to-score' and the data from the 500 loan applications yet to be reviewed,'customers-to-score'. The two sets of data include personal details about the customer, such as their age and how long they have been at their current job. It will also include details on the individual’s banking and credit history, such as their account balance, number of credits at this bank, and their payment status of previous credit.
+
+We will use the data set with already processed loan application to build a binary classification predictive model to determine if a customer is creditworthy or non-creditworthy. 
+
+## Section 2: Data Structure & Quality
+
+```{r Load Libraries & Import Data Sets, message=FALSE, warning=FALSE, include=FALSE}
+library(rio)
+library(Amelia)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(caret)
+library(rpart)
+library(gbm)
+library(randomForest)
+library(devtools)
+library(woe)
+library(ResourceSelection)
+library(ROCR)
+
+```
+
+The data we used to train the model was an equivalent sum of 500 loan applications with 19 variables that includes the outcome variable. The 19 variables included in the data set are listed as follows:
+```{r message=FALSE, warning=FALSE, include=FALSE}
+train <- import('C:/Users/nedu_/git-projects/Creditworthiness/data/credit-data-training.xlsx')
+test <- import('C:/Users/nedu_/git-projects/Creditworthiness/data/customers-to-score.xlsx')
+colnames(train)<-make.names(colnames(train))
+train$Credit.Application.Result <-make.names(train$Credit.Application.Result)
+colnames(test)<-make.names(colnames(test))
+```
+
+
+```{r}
+names(train)
+```
+
+We checked the data structure and quality to check for missing values.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+na_plot<-missmap(train, legend = T, col = c('yellow','black'), main = "Creditworthiness Missingness Map")
+
+data.frame(colSums(is.na(train)))
+
+```
+
+The missing values plot showed that the variables _Duration.in.Current.address_ had more than 50% of its values missing and _Age.years_ had less than 5% missing values. We dropped _Duration.in.Current.address_ and imputed the missing _Age.years_ with the median value.
+Character variables were also encoded as factors.
+
+## Section 3: Exploratory Data Analysis
+
+Next we performed some exploratory data analysis to generate some insights from our internal data. We started with some distributions to get a sense of the numeric data.
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
