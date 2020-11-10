@@ -1,8 +1,6 @@
-library(dplyr)
 class(train)
 dim(train)
 names(train)
-str(train)
 glimpse(train)
 
 head(train)%>%View()

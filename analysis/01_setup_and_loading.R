@@ -1,2 +1,6 @@
 library(rio)
+library(Amelia)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
 train <- import('data/credit-data-training.xlsx')
