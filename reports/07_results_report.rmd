@@ -351,4 +351,89 @@ tune.Grid <-  expand.grid(interaction.depth = c(1, 5, 9),
                           n.minobsinnode = 15)
 ```
 
-__Logistic Regression__
+__1. Logistic Regression__
+The model gave an accuracy of 0.73 with a 10-fold repeated cross validation as can be see in the model output below.
+```{r GLM by accuracy metric, echo=FALSE, message=FALSE, warning=FALSE}
+glmFit <- train(Credit.Application.Result ~ .,
+                method = 'glm',
+                trControl = fitControl,
+                data = train_set)
+#glmFit$finalModel
+#summary(glmFit)
+glmFit
+```
+_Table 4.1 Logistic Regression model Accuracy measure output_
+
+
+We measured the performance of the Logistic Regression using the ROC metric with the output of 0.745 as seen below.
+```{r GLM by ROC, echo=FALSE, message=FALSE, warning=FALSE}
+#ROC as performance metric
+glmFit2 <- train(Credit.Application.Result ~ .,
+                method = 'glm',
+                metric = 'ROC',
+                trControl = fitControl2,
+                data = train_new)
+
+glmFit2
+```
+_Table 4.1b Logistic Regression with ROC measure output_
+
+We applied the model to the hold-out sample and got an overall of 79.2% as seen in the Confusion Matrix and its statistics output below. This was an improvement on the accuracy of the model. However, the calculated Positive Predictive Value (PPV) of 81.5% and Negative Predictive Value (NPV) of 70.37% showed that the model is biased towards Creditworthy.
+```{r Logistic Regression Cm,echo=FALSE, message=FALSE, warning=FALSE}
+glm.pred <- predict(glmFit,test_set)
+cm<-confusionMatrix(table(glm.pred,test_set$Credit.Application.Result))   
+cm
+```
+_Table 4.2 Confusion Matrix and Statistics output_
+
+
+__2. Decision Tree__
+
+We used the Decision Tree algorithm to train the model and got an accuracy of 73.27% at a complexity parameter of 0.0375. This can be seen in the line plot of the tuning parameter in Fig 4.2 below.
+
+```{r Dtree by Accuracy metric, echo=FALSE, message=FALSE, warning=FALSE}
+treeFit <- train(Credit.Application.Result ~.,
+               method = "rpart",
+               trControl = fitControl,
+               tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
+               data = train_set)
+
+plot(treeFit)
+```
+_Fig 4.2 Decision Tree complexity parameter tuning plot_
+
+We can also see from the variable importance plot that _Payment.Status.of Previous.Credit_ is the most important followed by _Duration.Credit.Month_ and _Account.Balance_ compared to the Logistic Regression model that showed _Account.Balance_ as the most significant predictor.
+
+```{r DTree VarImp, echo=FALSE, message=FALSE, warning=FALSE}
+plot(varImp(treeFit))
+```
+_Fig 4.3 Decision Tree Variable importance plot_
+
+Next we tuned the Decision Tree model using the ROC metric. This gave us the optimal ROC of 69.39% at a complexity parameter value of 0.03333333. See the ROC Vs CP plot in Fig 4.4 below.
+```{r Dtree by ROC, echo=FALSE, message=FALSE, warning=FALSE}
+#####ROC metric
+treeFit2 <- train(Credit.Application.Result ~.,
+                 method = "rpart",
+                 trControl = fitControl2,
+                 metric ='ROC',
+                 tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
+                 data = train_set)
+
+plot(treeFit2)
+```
+_Fig 4.4 Decision Tree ROC vs CP plot_
+
+Applying the model with accuracy as metric of choice to the hold-out sample gave an overall accuracy of 78.52%. This mode did not perform better than the Logistic Regression.Similar to the Logistic Regression, it is biased towards the Creditworthy category from the values of the PPV and NPV.
+
+
+```{r Dtree Confusion matrix, echo=FALSE, message=FALSE, warning=FALSE}
+tree.pred <- predict(treeFit,test_set)
+cm2<-confusionMatrix(table(tree.pred,test_set$Credit.Application.Result))   
+cm2
+```
+
+
+__3. Random Forest__
+
+
+
