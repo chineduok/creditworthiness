@@ -1,7 +1,7 @@
 Udacity Nanodegree Project
 
 The Project focuses of predicting default risk of 500 loan applications to a bank.The R scripts for the different phases of the project are in the 'analysis' folder.
-The final report for is an R markdown with code chunks integrated in the report and the presentation is in PDF.
+The final report for is an R markdown with code chunks integrated in the report and the presentation is in PDF.This report can be found in the reports folder.
 The input data for building the model is in the data folder. 
 
 The project involved developing a binary classification predictive model from 4 different algorithms to determine if a customer is creditworthy or non-creditworthy.
