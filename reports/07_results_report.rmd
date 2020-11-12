@@ -6,26 +6,25 @@ output:
 ---
 
 #  BUSINESS REPORT- PREDICTING DEFAULT RISK
-
+**************
 ## Section 1: Business Understanding
 
-__Business Situation__
-
+__Business Situation__  
 Our bank receives 200 loan applications per week, but due to a financial scandal that hit a competitor the credit risk unit of the bank will be processing 500 applications this week.The influx of new credit applications is a great opportunity the bank wants to immediately pursue.
 
-__The Complication__
-
+__The Complication__  
 The bank will want to maintain there processing turnaround time while ensuring that the credit risk unit is able to effectively determine creditworthy applications, while reducing the risk of default by effectively determining non-creditworthy applications.
 
-__Key Decision that needs to be made__
-
+__Key Decision that needs to be made__  
 The Head of the credit risk department needs to decide if a loan should be approved for each of the 500 loan applications received this week.
 
-__Approach__
-
+__Approach__  
 This project is data rich; it has readily available information that can be used to predict creditworthiness of the 500 loan applications. The data will be acquired internally from already processed loan applications,'customers-to-score' and the data from the 500 loan applications yet to be reviewed,'customers-to-score'. The two sets of data include personal details about the customer, such as their age and how long they have been at their current job. It will also include details on the individual’s banking and credit history, such as their account balance, number of credits at this bank, and their payment status of previous credit.
 
-We will use the data set with already processed loan application to build a binary classification predictive model to determine if a customer is creditworthy or non-creditworthy. 
+We will use the data set with already processed loan application to build a binary classification predictive model from 4 different algorithms to determine if a customer is creditworthy or non-creditworthy. We will then make some comparisons with some performance metric to determine the algorithm that will be used to predict the Creditworthiness of the 500 new loan applications. 
+
+
+
 
 ## Section 2: Data Structure & Quality
 
@@ -40,7 +39,7 @@ library(caret)
 library(rpart)
 library(gbm)
 library(randomForest)
-library(devtools)
+library('devtools')
 library(woe)
 library(ResourceSelection)
 library(ROCR)
@@ -72,7 +71,6 @@ na_plot<-missmap(train, legend = T, col = c('yellow','black'), main = "Creditwor
 _Fig 2.1 Missing Values_
 
 
-
 ```{r echo=FALSE}
 train_NA<-data.frame(colSums(is.na(train)))
 colnames(train_NA)<-'NAs'
@@ -80,8 +78,7 @@ train_NA
 ```
 _Table 2.2 NA's per variable_
 
-The missing values plot showed that the variables _Duration.in.Current.address_ had more than 50% of its values missing and _Age.years_ had less than 5% missing values. We dropped _Duration.in.Current.address_ and imputed the missing _Age.years_ with the median value.
-Character variables were also encoded as factors.
+The missing values plot showed that the variables _Duration.in.Current.address_ had more than 50% of its values missing and _Age.years_ had less than 5% missing values. We dropped _Duration.in.Current.address_ and imputed the missing _Age.years_ with the median value.Character variables were also encoded as factors.
 
 ```{r include=FALSE}
 train<-train%>%select(-Duration.in.Current.address)
@@ -128,6 +125,8 @@ summary(train)
 ```
 
 
+
+
 ## Section 3: Exploratory Data Analysis
 
 Next we performed some exploratory data analysis to generate some insights from our internal data. We started with some distributions of categorical variables to get a sense of variables that have zero variance or near zro variance that can affect our modeling.
@@ -142,7 +141,7 @@ nzv.check.plt
 ```
 _Fig_3.1 Bar charts of categorical variables_
 
-We can identify immediately 3 variables, 'Concurrent.Credits','Foreign.Worker', 'Guarantors' and 'Occupation'. To be sure of this we claculate the frequency ratio of the most occurrence over the second most occurrence value within the variables and also the percent unique to check their validity.
+We can identify immediately 3 variables, _Concurrent.Credits_, _Foreign.Worker_, _Guarantors_ and _Occupation_. To be sure of this we calculate the frequency ratio of the most occurrence over the second most occurrence value within the variables and also the percent unique to check their validity.
 
 ```{r echo=FALSE}
 nzv <- nearZeroVar(train, saveMetrics = T)
@@ -310,6 +309,9 @@ _Fig 3.5 Bar plots group2_
 
 This group of charts seem to follow the same trend. It shows that people with less than a year in current may not have attained an acceptable credit score and without any savings further supports the suggestion that these may be new employees or those just starting out in their careers.
 
+
+
+
 ## Section 4: Training the Model
 
 We used 4 different algorithms to train the binary classification model and compared their ROC and Accuracy performance of metrics to determine the best performance for scoring the 500 new loan applications.The algorithms we used are: 
@@ -352,11 +354,14 @@ tune.Grid <-  expand.grid(interaction.depth = c(1, 5, 9),
 ```
 
 __1. Logistic Regression__
-The model gave an accuracy of 0.73 with a 10-fold repeated cross validation as can be see in the model output below.
+
+The model gave an accuracy of 73% with a 10-fold repeated cross validation as can be see in the model output below.
+
 ```{r GLM by accuracy metric, echo=FALSE, message=FALSE, warning=FALSE}
 glmFit <- train(Credit.Application.Result ~ .,
                 method = 'glm',
                 trControl = fitControl,
+                tuneLength =10,
                 data = train_set)
 #glmFit$finalModel
 #summary(glmFit)
@@ -365,20 +370,24 @@ glmFit
 _Table 4.1 Logistic Regression model Accuracy measure output_
 
 
-We measured the performance of the Logistic Regression using the ROC metric with the output of 0.745 as seen below.
+We measured the performance of the Logistic Regression using the ROC metric with the output of 74.5% as seen below.
+
 ```{r GLM by ROC, echo=FALSE, message=FALSE, warning=FALSE}
 #ROC as performance metric
 glmFit2 <- train(Credit.Application.Result ~ .,
                 method = 'glm',
                 metric = 'ROC',
                 trControl = fitControl2,
-                data = train_new)
+                data = train_set)
 
 glmFit2
+
 ```
 _Table 4.1b Logistic Regression with ROC measure output_
 
+__Logistic Regression test prediction and confusion matrix__  
 We applied the model to the hold-out sample and got an overall of 79.2% as seen in the Confusion Matrix and its statistics output below. This was an improvement on the accuracy of the model. However, the calculated Positive Predictive Value (PPV) of 81.5% and Negative Predictive Value (NPV) of 70.37% showed that the model is biased towards Creditworthy.
+
 ```{r Logistic Regression Cm,echo=FALSE, message=FALSE, warning=FALSE}
 glm.pred <- predict(glmFit,test_set)
 cm<-confusionMatrix(table(glm.pred,test_set$Credit.Application.Result))   
@@ -398,18 +407,29 @@ treeFit <- train(Credit.Application.Result ~.,
                tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
                data = train_set)
 
-plot(treeFit)
+plot(treeFit, main = "Decision Tree-Model Accuracy Plot")
 ```
 _Fig 4.2 Decision Tree complexity parameter tuning plot_
 
+
+```{r eval=FALSE, include=FALSE}
+library(rpart.plot)
+prp(treeFit$finalModel)
+```
+
+
+__Decision Tree variable importance__  
 We can also see from the variable importance plot that _Payment.Status.of Previous.Credit_ is the most important followed by _Duration.Credit.Month_ and _Account.Balance_ compared to the Logistic Regression model that showed _Account.Balance_ as the most significant predictor.
 
 ```{r DTree VarImp, echo=FALSE, message=FALSE, warning=FALSE}
-plot(varImp(treeFit))
+plot(varImp(treeFit), main = "Decision Tree Variable Importance")
 ```
 _Fig 4.3 Decision Tree Variable importance plot_
 
+
+__Decision Tree model with ROC as metric__  
 Next we tuned the Decision Tree model using the ROC metric. This gave us the optimal ROC of 69.39% at a complexity parameter value of 0.03333333. See the ROC Vs CP plot in Fig 4.4 below.
+
 ```{r Dtree by ROC, echo=FALSE, message=FALSE, warning=FALSE}
 #####ROC metric
 treeFit2 <- train(Credit.Application.Result ~.,
@@ -419,21 +439,205 @@ treeFit2 <- train(Credit.Application.Result ~.,
                  tuneGrid = data.frame(cp = seq(0.0, 0.1, len = 25)),
                  data = train_set)
 
-plot(treeFit2)
+plot(treeFit2,main = "Decision Tree- ROC plot")
 ```
-_Fig 4.4 Decision Tree ROC vs CP plot_
+_Fig 4.4 Decision Tree ROC plot_
 
+
+__Decision Tree test prediction and confusion matrix__  
 Applying the model with accuracy as metric of choice to the hold-out sample gave an overall accuracy of 78.52%. This mode did not perform better than the Logistic Regression.Similar to the Logistic Regression, it is biased towards the Creditworthy category from the values of the PPV and NPV.
 
-
-```{r Dtree Confusion matrix, echo=FALSE, message=FALSE, warning=FALSE}
+```{r Dtree Test prediction and CMx, echo=FALSE, message=FALSE, warning=FALSE}
 tree.pred <- predict(treeFit,test_set)
 cm2<-confusionMatrix(table(tree.pred,test_set$Credit.Application.Result))   
 cm2
 ```
+_Table 4.3 Decision Tree Confusion Matrix Output_
 
 
 __3. Random Forest__
+
+The Random Forest model showed better accuracy than the first two models. The model gave an accuracy of 75.82%  with 4 as the optimal no of randomly selected predictors. This can also be seen in the Accuracy Plot show in Fig 4.5
+
+```{r RandomForest accuracy, echo=FALSE, message=FALSE, warning=FALSE}
+rfFit<- train(Credit.Application.Result ~.,
+              method = 'rf',
+              trControl = fitControl,
+              tuneLength = 10,
+              data = train_set)
+
+rfFit
+```
+_Table 4.4 Random Forest Model (metric=Accuracy)_
+
+```{r RF accuracy plot,echo=FALSE}
+plot(rfFit, main = "Random Forest - Accuracy Plot")
+```
+_Fig 4.5 Random Forest- Accuracy Plot_
+
+__Random Forest variable importance__  
+Unlike the Decision Tree that showed the first 3 variables of importance as _Payment.Status.of Previous.Credit_, _Duration.of.Credit.Month_,and _Account Balance_; the Random Forest Model  showed _Account.Balance_, _Payment.Status.of Previous.Credit_ and _Duration.of.Credit.Month_  as the most significant predictors.
+
+```{r RF Variable Importance Plt, echo=FALSE}
+
+plot(varImp(rfFit,10),main = "Random Forest -Variable Importance Plot")
+```
+_Fig 4.6 Random Forest Variable Importance Plot_
+
+__Random Forest with ROC as metric__   
+We used the ROC metric to select the optimal model for the Random Forest algorithm. This gave us the optimal ROC of 74.91% with 2 as the value of randomly selected predictors. We can see the plot of values for the ROC against 10 different randomly selected predictors in Fig 4.6 below.
+
+```{r RandomForest ROC model, echo=FALSE, message=FALSE, warning=FALSE}
+rfFit2<- train(Credit.Application.Result ~.,
+              method = 'rf',
+              trControl = fitControl2,
+              tuneLength = 10,
+              metric ='ROC',
+              data = train_set)
+
+rfFit2
+
+```
+_Table 4.5 Random Forest Model output (metric = Accuracy)_
+
+
+```{r RF ROC plot, echo=FALSE}
+plot(rfFit2, main= "Random Forest - ROC plot")
+```
+_Fig 4.7 Random Forest - ROC plot_
+
+__Random Forest Test set prediction and confusion matrix__
+Next we applied the model with accuracy as metric of choice to the hold-out sample. This gave an overall accuracy of 78.52%. This model performed at par with the Decision Tree which also had an accuracy of 78.52%, but did not perform better than the Logistic Regression.However, we this model had a higher percentage for the NPV with a lesser difference from the PPV. This is particularly important as the bank needs to ensure they do not grant loans to Non-creditworthy customers, while ensuring that they adequately harness the opportunity not wrongly classifying Creditworthy customers in the process.Based on this we can conclude that there is no bias towards any of the classes.
+
+```{r RF test prediction and CM, echo=FALSE, message=FALSE, warning=FALSE}
+##Confusion matrix
+rf.pred <- predict(rfFit,test_set)
+cm3<-confusionMatrix(table(rf.pred,test_set$Credit.Application.Result))   
+cm3
+```
+_Table 4.6 Random Forest Confusion Matrix_
+
+__4. Boosted Tree Model__
+
+This optimal model had an accuracy of 74.04.% with an n.trees of 134. See the details for the optimal parameter in table 4.7 below. The Accuracy plot is also seen in Fig 4.8.
+```{r Boosted with Accuracy, echo=FALSE, message=FALSE, warning=FALSE}
+gbmFit<- train(Credit.Application.Result ~., 
+               method = 'gbm',
+               trControl = fitControl,
+               tuneGrid = tune.Grid,
+               verbose = FALSE,
+               data = train_set)
+
+
+gbmFit$bestTune
+```
+_Table 4.7 Boosted Model optimal performance parameters_
+
+```{r Boosted Accuracy plot, echo=FALSE, message=FALSE, warning=FALSE}
+plot(gbmFit, main = "Boosted Tree, Accuracy Plot")
+```
+_Fig 4.8 Boosted Model Accuracy Plot
+
+__Boosted Model variable importance__  
+
+This model introduced ranked the top three variables by importance as _Credit.Amount_ , _Account.Balance_ , and _Age.years_. This is a bit of a depature from the Decision Tree and Random Forest that had the same variables but in different order.
+
+```{r Boosted Var Imp Plot, echo=FALSE, message=FALSE, warning=FALSE}
+plot(varImp(gbmFit))
+```
+_Fig 4.9 Boosted Model Variable Importance plot_
+
+__Boosted Model with ROC as metric__
+The ROC metric gave us an optimal performance with an ROC of 72% with n.tree value of 94. See
+```{r Boosted model by ROC metric, echo=FALSE, message=FALSE, warning=FALSE}
+gbmFit2<- train(Credit.Application.Result ~., 
+               method = 'gbm',
+               trControl = fitControl2,
+               tuneGrid = tune.Grid,
+               metric ='ROC',
+               verbose = FALSE,
+               data = train_set)
+
+gbmFit2$bestTune
+```
+_Table 4.8 Boosted Model ROC optimal performance parameters_
+
+
+```{r Boosted ROC plot, echo=FALSE}
+plot(gbmFit2, main = "Boosted Model ROC plot")
+```
+_Fig 4.9 Boosted model ROC plot_
+
+__Boosted Model test prediction and confusion matrix__  
+The boosted model had an overall accuracy of 77.18% and the calculated values for the PPV and NPV revealed that it is biased towards the Creditworthy class.
+
+```{r Boosted test prediction and CM, echo=FALSE, message=FALSE, warning=FALSE}
+gbm.pred <- predict(gbmFit,test_set)
+cm4<-confusionMatrix(table(gbm.pred,test_set$Credit.Application.Result))     
+cm4
+```
+_Table 4.9 Boosted model confusion matrix output_
+
+
+## Section 5: Model Performance Metrics Evaluation
+
+Before we chose the model to use for prediction, we evaluated the performance of the 4 algorithms. We did a resampling of all the models, summarizing the results and plotting boxplots to visualize their performance metrics.
+
+```{r Comparing Models by Accuracy, echo=FALSE, message=FALSE, warning=FALSE}
+## Comparing the models
+#Accuracy
+fit.compare <-resamples(list(LogisticRegression = glmFit,Tree =treeFit,
+                             Forest=rfFit, Boosted =gbmFit))
+summary(fit.compare)
+
+```
+_Table 5.1 Accuracy metric model evaluation output_
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+scales <- list(x=list(relation="free"), y=list(relation="free"))
+bwplot(fit.compare, scales=scales)
+```
+_Fig 5.2 Accuracy metric evaluation boxplots_
+
+__Analysis of Accuracy performance metric for the 4 algorithms__  
+Earlier in section 4 the Logistic Regression had the highest model accuracy on test prediction.The summary of a 100 resamples in the output of our analysis in Table 5.1 above shows the Forest Model has the highest mean Accuracy performance of 75.47%.
+
+```{r Comparing models by ROC, echo=FALSE, message=FALSE, warning=FALSE}
+#ROC
+fit.compare2 <-resamples(list(LogisticRegression = glmFit2,Tree =treeFit2,
+                             Forest=rfFit2, Boosted =gbmFit2))
+summary(fit.compare2)
+```
+_Table 5.2 ROC performance metric evaluation output_
+
+__Analysis of ROC performance metric for the 4 algorithms__  
+The summary output of the resamples shows that the Forest Model performed best with a mean ROC of 75.32% which is consistent with its position in section 4 ranking 1st with an optimal performance ROC of 74.91%. This can also be seen in the the boxplot in Fig 5.2.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Draw box plots to compare models
+scales <- list(x=list(relation="free"), y=list(relation="free"))
+bwplot(fit.compare2,scales=scales)
+```
+
+
+__Summary of Basis for Selecting Random Forest for Prediction__  
+The comparison revealed that the __Forest Model__ performed better than the other 3 models based on the foregoing:   
+* the model had the highest accuracy of 75.82% with 10 fold repeated cross validation  
+* the model the best optimal performance with an ROC metric of 74.91%    
+* the model has the highest mean accuracy of 75.47% over 100 samples  
+* the model has the highest mean ROC of 75.32% over a 100 samples and slightly better than the in-sample model  
+* the model has the ability to predict correctly more Non-creditworthy application with an NPV of 75%. This is particularly important as the bank needs to ensure they do not grant loans to Non-creditworthy customers, while ensuring that they adequately harness the opportunity of not wrongly classifying Creditworthy customers in the process.
+
+
+
+
+
+
+
+
+
+
 
 
 
